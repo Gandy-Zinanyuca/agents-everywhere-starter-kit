@@ -8,12 +8,13 @@ import type { AgendaItem, Blocker, Meeting } from "./graph-types";
 
 // TEMP: disponibilidad fixture propia — reemplazar si P5 entrega una real
 // antes del checkpoint de 0:50.
+// Names must match fixture.ts (P5) exactly — "Sofia Ramos", no accent.
 const AVAILABILITY: { slot: string; available: string[] }[] = [
   {
     slot: "Hoy 15:00–15:30",
-    available: ["Sofía Ramos", "Marta Quispe", "Luis Ferrari", "Ana Delgado"],
+    available: ["Sofia Ramos", "Marta Quispe", "Luis Ferrari", "Ana Delgado"],
   },
-  { slot: "Hoy 16:00–16:30", available: ["Sofía Ramos", "Ana Delgado"] },
+  { slot: "Hoy 16:00–16:30", available: ["Sofia Ramos", "Ana Delgado"] },
   {
     slot: "Mañana 09:30–10:00",
     available: ["Marta Quispe", "Luis Ferrari", "Ana Delgado"],
@@ -39,10 +40,14 @@ function attendeesFor(blocker: Blocker, all: Blocker[]): string[] {
 }
 
 function pickSlot(attendees: string[]): string {
-  const fullyAvailable = AVAILABILITY.find((slot) =>
+  // Among slots that cover everyone, prefer the tightest fit (fewest people
+  // free "by coincidence"), not just the first one in the list — a big
+  // all-hands slot that happens to include the two people who need it is a
+  // worse answer than the slot sized for exactly this meeting.
+  const covering = AVAILABILITY.filter((slot) =>
     attendees.every((person) => slot.available.includes(person)),
-  );
-  if (fullyAvailable) return fullyAvailable.slot;
+  ).sort((a, b) => a.available.length - b.available.length);
+  if (covering.length) return covering[0].slot;
   // Nadie cubre a todos: gana el slot que cubre a más gente. Feo pero funciona.
   const bySize = [...AVAILABILITY].sort(
     (a, b) =>
