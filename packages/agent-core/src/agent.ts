@@ -25,10 +25,18 @@ export type AgentFactoryOptions = {
   prompt?: string;
 };
 
+// Cuenta de créditos ajustados (hackathon, cuenta con poco saldo). El SDK por
+// defecto pide max_tokens=65536, que OpenRouter rechaza con 402 si la cuenta
+// no puede cubrirlo. HACKATHON_MAX_OUTPUT_TOKENS en .env permite bajarlo sin
+// tocar código; 1024 es un valor seguro para respuestas cortas + tool calls.
+const MAX_OUTPUT_TOKENS = Number(process.env.HACKATHON_MAX_OUTPUT_TOKENS) || 1024;
+
 export function makeAgent(threadId: string, options: AgentFactoryOptions = {}) {
   const agent = new BuiltInAgent({
     model: resolveModel(),
     prompt: options.prompt ?? SYSTEM_PROMPT,
+    maxOutputTokens: MAX_OUTPUT_TOKENS,
+    temperature: 0,
 
     // NOT optional in practice. maxSteps defaults to 1, which means the agent
     // can call one tool and then stops — before it ever sees the result. Any
