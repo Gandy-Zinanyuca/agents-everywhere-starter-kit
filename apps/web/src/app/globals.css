@@ -531,3 +531,335 @@ p {
   font-size: 13px;
   overflow-wrap: anywhere;
 }
+
+/* ── Ruta Crítica · grafo de dependencias (P2) ─────────────────────────── */
+.rc-canvas {
+  position: relative;
+  margin: 4px 0 2px;
+}
+.rc-edges {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.rc-edge {
+  fill: none;
+  stroke-width: 1.75;
+  opacity: 0.32;
+  transition: stroke 0.5s ease, opacity 0.5s ease;
+}
+.rc-edge[data-status="resolved"] {
+  opacity: 0.85;
+  stroke-dasharray: 0;
+}
+.rc-edge[data-status="resolving"] {
+  opacity: 0.8;
+  stroke-dasharray: 5 6;
+  animation: rc-flow 0.7s linear infinite;
+}
+.rc-arrow {
+  opacity: 0.45;
+  transition: fill 0.5s ease;
+}
+@keyframes rc-flow {
+  to {
+    stroke-dashoffset: -11;
+  }
+}
+
+.rc-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--node);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: visible;
+  transition: background 0.55s ease, border-color 0.55s ease,
+    box-shadow 0.55s ease, transform 0.35s ease;
+}
+.rc-node:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.rc-node-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.rc-node-kind {
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--node);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rc-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--node);
+}
+.rc-node-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.32;
+  letter-spacing: -0.01em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* nodo angosto (fila bifurcada): cabe una línea más, el kind se recorta */
+.rc-node[data-split="1"] .rc-node-label {
+  -webkit-line-clamp: 3;
+  font-size: 12.5px;
+}
+.rc-node[data-split="1"] .rc-node-kind {
+  min-width: 0;
+}
+.rc-node-owner {
+  margin-left: auto;
+  flex: none;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* resolviendo: late */
+.rc-node[data-status="resolving"] {
+  background: color-mix(in srgb, var(--node) 7%, var(--surface));
+  animation: rc-pulse 1.15s ease-in-out infinite;
+}
+.rc-node[data-status="resolving"] .rc-dot {
+  animation: rc-blink 1.15s ease-in-out infinite;
+}
+@keyframes rc-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--node) 40%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--node) 0%, transparent);
+  }
+}
+@keyframes rc-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* resuelto: el flash que tiene que notarse en cámara */
+.rc-node[data-status="resolved"] {
+  background: color-mix(in srgb, var(--node) 11%, var(--surface));
+  border-color: color-mix(in srgb, var(--node) 45%, var(--border));
+  animation: rc-resolve 1s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+@keyframes rc-resolve {
+  0% {
+    transform: scale(1);
+    background: var(--surface);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--node) 70%, transparent);
+  }
+  22% {
+    transform: scale(1.035);
+    background: color-mix(in srgb, var(--node) 34%, var(--surface));
+    box-shadow: 0 0 0 12px color-mix(in srgb, var(--node) 22%, transparent);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 22px transparent;
+  }
+}
+
+/* irreducible: el único que sí merece una sala */
+.rc-node[data-status="needs_meeting"] {
+  background: color-mix(in srgb, var(--node) 9%, var(--surface));
+  border: 1px solid var(--node);
+  border-left-width: 3px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--node) 16%, transparent),
+    0 6px 18px -8px color-mix(in srgb, var(--node) 55%, transparent);
+  animation: rc-flag 0.9s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+@keyframes rc-flag {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  30% {
+    transform: translateY(-5px) scale(1.025);
+  }
+  55% {
+    transform: translateY(0) scale(1);
+  }
+  70% {
+    transform: translateY(-2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.rc-badge,
+.rc-saved {
+  flex: none;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--node);
+  white-space: nowrap;
+}
+.rc-saved {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* pre-read al pasar el cursor (o con foco de teclado) */
+.rc-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 9px);
+  translate: -50% 4px;
+  width: min(320px, 100%);
+  padding: 10px 12px;
+  background: var(--text);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease, translate 0.18s ease, visibility 0.18s;
+  z-index: 5;
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.6);
+}
+.rc-tip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  border: 5px solid transparent;
+  border-top-color: var(--text);
+  translate: -50% 0;
+}
+/* la fila de arriba no tiene sitio encima: abre hacia abajo */
+.rc-node[data-row="0"] .rc-tip {
+  bottom: auto;
+  top: calc(100% + 9px);
+  translate: -50% -4px;
+}
+.rc-node[data-row="0"] .rc-tip::after {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: var(--text);
+}
+.rc-node:hover .rc-tip,
+.rc-node:focus-visible .rc-tip {
+  opacity: 1;
+  visibility: visible;
+  translate: -50% 0;
+}
+.rc-tip p {
+  margin: 0;
+}
+.rc-tip ul {
+  margin: 6px 0 0;
+  padding-left: 14px;
+}
+.rc-tip a {
+  color: #9fd6ff;
+}
+
+.rc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.rc-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* contador */
+.rc-meter {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  background: #f7f7f9;
+  transition: border-color 0.5s ease, background 0.5s ease;
+}
+.rc-meter[data-live="yes"] {
+  border-color: color-mix(in srgb, #16706a 40%, var(--border));
+  background: color-mix(in srgb, #16706a 5%, var(--surface));
+}
+.rc-meter-top {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.rc-meter-num {
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+  color: #16706a;
+}
+.rc-meter[data-live="no"] .rc-meter-num {
+  color: var(--muted);
+}
+.rc-meter-unit {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--muted);
+}
+.rc-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+  margin: 14px 0 8px;
+}
+.rc-bar span {
+  display: block;
+  height: 100%;
+  background: #16706a;
+  border-radius: 999px;
+  transition: width 0.7s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.rc-meter-foot {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-node,
+  .rc-node .rc-dot,
+  .rc-edge {
+    animation: none !important;
+  }
+}
