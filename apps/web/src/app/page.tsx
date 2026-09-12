@@ -3,13 +3,17 @@
  * PÁGINA — dueño: P1. Nadie más la edita.
  * Heredado del starter kit: layout ck-*, CopilotChat, GenerativeUI,
  * WorkplaceFollowups y el hook useWorkplace.
- * Construido hoy: el estado del grafo, la lista de bloqueos y el contador.
+ * Construido hoy: el estado del grafo, botones de respaldo (independientes
+ * del chat, por si el modelo no llama las tools) y la tarjeta de aprobación
+ * de reunión de P4.
  */
 
+import { useState, useTransition } from "react";
 import { CopilotChat, useConfigureSuggestions } from "@copilotkit/react-core/v2";
 import { GenerativeUI } from "@/components/generative-ui";
 import { AppControl } from "@/components/app-control";
 import { GraphCanvas, SavedHours } from "@/components/graph-canvas";
+import { MeetingApproval } from "@/components/meeting-approval";
 import { WorkplaceFollowups } from "@/components/workplace-followups";
 import { useWorkplace } from "@/lib/use-workplace";
 import { useGraph } from "@/lib/use-graph";
@@ -20,7 +24,25 @@ const PROJECT_ID = "checkout-v2";
 export default function Home() {
   const graph = useGraph();
   const workplace = useWorkplace(PROJECT_ID);
-  const { state } = graph;
+  const { state, runTriage, resolveInfoGap, runMeeting } = graph;
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const needsMeeting = state.blockers.some((b) => b.status === "needs_meeting");
+  const infoGapsPending = state.blockers.filter(
+    (b) => b.kind === "info_gap" && b.status !== "resolved",
+  );
+
+  function runSafely(action: () => Promise<unknown>) {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await action();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Algo falló. Revisa la consola.");
+      }
+    });
+  }
 
   useConfigureSuggestions(
     {
@@ -70,33 +92,51 @@ export default function Home() {
               Cadena de bloqueos
             </h2>
 
+            {/* Respaldo manual: no depende de que el chat llame las tools. */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "10px 0" }}>
+              <button
+                type="button"
+                className="ck-btn ck-btn--primary"
+                disabled={isPending}
+                onClick={() => runSafely(runTriage)}
+              >
+                Analizar bloqueos
+              </button>
+              {infoGapsPending.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  className="ck-btn"
+                  disabled={isPending}
+                  onClick={() => runSafely(() => resolveInfoGap(b.id))}
+                >
+                  Investigar: {b.id}
+                </button>
+              ))}
+              {needsMeeting && !state.meeting && (
+                <button
+                  type="button"
+                  className="ck-btn"
+                  disabled={isPending}
+                  onClick={() => runSafely(runMeeting)}
+                >
+                  Proponer reunión mínima
+                </button>
+              )}
+            </div>
+            {error && (
+              <p role="alert" className="ck-local-note" style={{ color: "#9d3617" }}>
+                {error}
+              </p>
+            )}
+
             <SavedHours state={state} />
 
             <div style={{ marginTop: 14 }}>
               <GraphCanvas state={state} />
             </div>
 
-            {state.meeting && (
-              <div style={{ marginTop: 16 }}>
-                <h3>Reunión mínima viable</h3>
-                <p style={{ fontSize: ".88rem", opacity: 0.8 }}>
-                  {state.meeting.minutes} min · {state.meeting.slot} ·{" "}
-                  {state.meeting.attendees.join(", ")}
-                </p>
-                <ol style={{ fontSize: ".9rem" }}>
-                  {state.meeting.agenda.map((item) => (
-                    <li key={item.topic}>
-                      <strong>{item.topic}</strong> — {item.owner} ·{" "}
-                      {item.minutes} min
-                      <br />
-                      <span style={{ opacity: 0.75 }}>
-                        Decisión esperada: {item.decision}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
+            {state.meeting && <MeetingApproval meeting={state.meeting} />}
 
             <WorkplaceFollowups incidentId={PROJECT_ID} workplace={workplace} />
           </section>

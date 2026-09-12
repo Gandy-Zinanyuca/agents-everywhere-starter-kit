@@ -1,11 +1,20 @@
 "use client";
 /**
- * TOOLS DEL AGENTE — dueño: P1. Reemplaza apps/web/src/components/app-control.tsx
+ * TOOLS DEL AGENTE — dueño: P1.
  *
  * Heredado del starter kit: la forma de useAgentContext/useFrontendTool,
  * toolResult, y las tools de Ambiguous (propose/retrieve/refresh).
- * Construido hoy: map_dependencies, triage_blockers, research_blocker,
- * propose_resolution.
+ * Construido hoy: map_dependencies, triage_blockers, resolve_info_gap,
+ * propose_meeting.
+ *
+ * DISEÑO CLAVE: cada tool es una envoltura delgada sobre las acciones de
+ * useGraph (runTriage, resolveInfoGap, runMeeting), que a su vez llaman al
+ * código determinista de P3 (triage.ts vía /api/triage) y P4
+ * (research-blocker.ts vía /api/blockers/research, agenda.ts en cliente).
+ * El modelo NUNCA calcula horas ni escribe resúmenes: solo decide CUÁNDO
+ * llamar cada función. Eso es a propósito — con maxOutputTokens bajo por
+ * el presupuesto de créditos, pedirle al modelo que además redacte JSON
+ * numérico es el primer punto de falla.
  *
  * REGLA QUE NO SE ROMPE: el chat nunca recibe tools de escritura crudas.
  * Propone y lee; el servidor escribe solo tras el clic de aprobar.
@@ -14,8 +23,7 @@
 import { useFrontendTool, useAgentContext } from "@copilotkit/react-core/v2";
 import { z } from "zod";
 import { graphContext } from "@/lib/fixture";
-import { KIND_LABEL } from "@/lib/graph-types";
-import type { GraphControls, TriageVerdict } from "@/lib/use-graph";
+import type { GraphControls } from "@/lib/use-graph";
 import type { WorkplaceControls } from "@/lib/use-workplace";
 
 async function toolResult<T>(action: () => Promise<T>) {
@@ -40,18 +48,17 @@ export function AppControl({
   workplace: WorkplaceControls;
 }) {
   const { status, propose, retrieve } = workplace;
-  const { state, applyTriage, attachResolution, setResolving } = graph;
+  const { state, runTriage, resolveInfoGap, runMeeting } = graph;
 
   useAgentContext({
     description:
       "El proyecto y su cadena de bloqueos, tal como el usuario los ve ahora. " +
-      "Tu trabajo NO es agendar reuniones: es eliminarlas. Cada bloqueo se " +
-      "clasifica en info_gap, confirmation, handoff o real_decision. Los tres " +
-      "primeros se resuelven async. Solo real_decision llega a ser reunión. " +
+      "Tu trabajo NO es agendar reuniones: es eliminarlas. Un bloqueo con " +
+      "status distinto de 'pending' ya fue procesado: no lo repitas. " +
       "CRÍTICO: propose_resolution solo prepara una propuesta. Únicamente el " +
       "botón de aprobación del usuario guarda algo; aprobar por chat nunca " +
       "ejecuta una escritura. Nunca afirmes que algo se guardó sin un registro " +
-      "real. Nunca inventes links de registro.",
+      "real. Nunca inventes links de registro ni fuentes.",
     value: {
       ...graphContext(state),
       workplace: status?.status ?? "unavailable",
@@ -61,7 +68,6 @@ export function AppControl({
     },
   });
 
-  // ---- P1 ----
   useFrontendTool(
     {
       name: "map_dependencies",
@@ -73,89 +79,50 @@ export function AppControl({
     [state],
   );
 
-  // ---- P3: el Triador. UNA llamada, todos los nodos. ----
   useFrontendTool(
     {
       name: "triage_blockers",
       description:
-        "Clasifica TODOS los bloqueos pendientes de una sola vez y devuelve el veredicto de cada uno. " +
-        `Tipos: ${Object.entries(KIND_LABEL).map(([k, v]) => `${k} (${v})`).join(", ")}. ` +
-        "savedPersonHours son las horas-persona que se ahorran al no hacer la reunión que ese bloqueo habría provocado; " +
-        "para real_decision es 0 porque la reunión sí ocurre.",
-      parameters: z.object({
-        verdicts: z.array(
-          z.object({
-            id: z.string(),
-            kind: z.enum([
-              "info_gap",
-              "confirmation",
-              "handoff",
-              "real_decision",
-            ]),
-            summary: z.string().min(1).max(600),
-            savedPersonHours: z.number().min(0).max(40),
-          }),
-        ),
-      }),
-      handler: async ({ verdicts }) => {
-        applyTriage(verdicts as TriageVerdict[]);
-        return {
-          status: "applied",
-          applied: verdicts.length,
-          note: "El grafo ya refleja la clasificación. Ahora resuelve los info_gap con research_blocker.",
-        };
-      },
+        "Clasifica TODOS los bloqueos pendientes de una sola vez (info_gap, confirmation, handoff, real_decision) " +
+        "y calcula las horas-persona ahorradas. El grafo se actualiza en vivo. Úsala una sola vez por conversación; " +
+        "no acepta argumentos, la clasificación ocurre en el servidor.",
+      parameters: z.object({}),
+      handler: async () =>
+        toolResult(async () => ({ status: "applied", ...(await runTriage()) })),
     },
-    [applyTriage],
-  );
-
-  // ---- P4: Exa ----
-  useFrontendTool(
-    {
-      name: "research_blocker",
-      description:
-        "Solo para bloqueos kind=info_gap. Busca evidencia pública y genera un pre-read con fuentes citadas que ELIMINA la necesidad de reunirse. Devuelve el resumen y las URLs reales; nunca inventes fuentes.",
-      parameters: z.object({
-        blockerId: z.string(),
-        query: z.string().min(3).max(300),
-      }),
-      handler: async ({ blockerId, query }) =>
-        toolResult(async () => {
-          setResolving(blockerId);
-          const res = await fetch("/api/search", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query, results: 3 }),
-          });
-          if (!res.ok) throw new Error(`Búsqueda falló: HTTP ${res.status}`);
-          const { results } = (await res.json()) as {
-            results: { title?: string; url?: string; text?: string }[];
-          };
-          const sources = (results ?? [])
-            .filter((r) => r.url)
-            .map((r) => ({ title: r.title ?? r.url!, url: r.url! }));
-          return { blockerId, sources, raw: results };
-        }),
-    },
-    [setResolving],
+    [runTriage],
   );
 
   useFrontendTool(
     {
-      name: "attach_preread",
+      name: "resolve_info_gap",
       description:
-        "Adjunta el pre-read redactado al bloqueo y lo marca resuelto en el grafo. Usa solo fuentes devueltas por research_blocker.",
-      parameters: z.object({
-        blockerId: z.string(),
-        summary: z.string().min(1).max(2000),
-        sources: z.array(z.object({ title: z.string(), url: z.string() })),
-      }),
-      handler: async ({ blockerId, summary, sources }) => {
-        attachResolution(blockerId, { summary, sources });
-        return { status: "resolved", blockerId };
-      },
+        "Solo para bloqueos con kind=info_gap. Busca evidencia pública real y adjunta un pre-read con fuentes " +
+        "citadas que ELIMINA la necesidad de reunirse. El resumen y las fuentes los genera el servidor; nunca " +
+        "escribas tú un resumen ni inventes una URL.",
+      parameters: z.object({ blockerId: z.string() }),
+      handler: async ({ blockerId }) =>
+        toolResult(async () => ({
+          status: "resolved",
+          blockerId,
+          resolution: await resolveInfoGap(blockerId),
+        })),
     },
-    [attachResolution],
+    [resolveInfoGap],
+  );
+
+  useFrontendTool(
+    {
+      name: "propose_meeting",
+      description:
+        "Solo cuando quede al menos un bloqueo needs_meeting. Arma la reunión mínima viable: agenda con dueño y " +
+        "decisión esperada por punto, duración según complejidad, y el horario donde todos los asistentes están " +
+        "disponibles. No agenda nada por sí sola: la página muestra un botón de aprobación humana.",
+      parameters: z.object({}),
+      handler: async () =>
+        toolResult(async () => ({ status: "proposed", meeting: await runMeeting() })),
+    },
+    [runMeeting],
   );
 
   // ---- Heredado del kit: la frontera de escritura. NO TOCAR la lógica. ----
