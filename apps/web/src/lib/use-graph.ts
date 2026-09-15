@@ -1,9 +1,9 @@
 "use client";
 /**
- * SHARED STATE — dueño: P1.
- * Las acciones (runTriage, resolveInfoGap, runMeeting) son la ÚNICA fuente de
- * lógica: el chat las llama vía frontend tools, y los botones de la página
- * las llaman directo. Nunca duplicar esta lógica en dos sitios.
+ * SHARED STATE — owner: P1.
+ * The actions (runTriage, resolveInfoGap, runMeeting) are the ONLY source of
+ * logic: the chat calls them via frontend tools, and the page's buttons call
+ * them directly. Never duplicate this logic in two places.
  */
 
 import { useCallback, useState } from "react";
@@ -17,29 +17,29 @@ export function useGraph() {
     totals: computeTotals(initialState.blockers),
   }));
 
-  /** triage.ts (P3), vía /api/triage: UNA llamada, batched, determinista. */
+  /** triage.ts (P3), via /api/triage: ONE call, batched, deterministic. */
   const runTriage = useCallback(async () => {
     const res = await fetch("/api/triage", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ blockers: state.blockers }),
     });
-    if (!res.ok) throw new Error(`Triage falló: HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`Triage failed: HTTP ${res.status}`);
     const { blockers } = (await res.json()) as { blockers: AppState["blockers"] };
     setState((prev) => ({ ...prev, blockers, totals: computeTotals(blockers) }));
     const needsMeeting = blockers.filter((b) => b.status === "needs_meeting").length;
     return {
       total: blockers.length,
-      resueltosAsync: blockers.length - needsMeeting,
-      necesitanReunion: needsMeeting,
+      asyncResolved: blockers.length - needsMeeting,
+      needMeeting: needsMeeting,
     };
   }, [state.blockers]);
 
-  /** research-blocker.ts (P4), vía /api/blockers/research: solo para info_gap. */
+  /** research-blocker.ts (P4), via /api/blockers/research: info_gap only. */
   const resolveInfoGap = useCallback(
     async (blockerId: string) => {
       const blocker = state.blockers.find((b) => b.id === blockerId);
-      if (!blocker) throw new Error(`Bloqueo desconocido: ${blockerId}`);
+      if (!blocker) throw new Error(`Unknown blocker: ${blockerId}`);
       setState((prev) => ({
         ...prev,
         blockers: prev.blockers.map((b) =>
@@ -51,7 +51,7 @@ export function useGraph() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(blocker),
       });
-      if (!res.ok) throw new Error(`Investigación falló: HTTP ${res.status}`);
+      if (!res.ok) throw new Error(`Research failed: HTTP ${res.status}`);
       const { resolution } = (await res.json()) as { resolution: AppState["blockers"][number]["resolution"] };
       setState((prev) => {
         const blockers = prev.blockers.map((b) =>
@@ -64,7 +64,7 @@ export function useGraph() {
     [state.blockers],
   );
 
-  /** agenda.ts (P4): pura, sin red. Solo tiene sentido si ya hay needs_meeting. */
+  /** agenda.ts (P4): pure, no network. Only makes sense once there's a needs_meeting. */
   const runMeeting = useCallback(async () => {
     const meeting: Meeting = await buildMeeting(state.blockers);
     setState((prev) => ({ ...prev, meeting }));

@@ -1,10 +1,10 @@
 "use client";
 /**
- * APPROVAL CARD — dueño: P4.
- * Nada de esto llama a ningún proveedor externo: es la reunión mínima
- * viable que build_meeting() propuso, y un humano decide si se confirma.
- * Aprobar/Cancelar es estado local — el alcance congelado no incluye
- * Calendar real.
+ * APPROVAL CARD — owner: P4.
+ * None of this calls any external provider: it's the minimum viable meeting
+ * that build_meeting() proposed, and a human decides whether to confirm it.
+ * Approve/Cancel is local state — the frozen scope does not include a real
+ * Calendar integration.
  */
 import { useState } from "react";
 import type { Meeting } from "@/lib/graph-types";
@@ -18,18 +18,18 @@ export function MeetingApproval({ meeting }: { meeting: Meeting }) {
 
   if (status === "cancelled") {
     return (
-      <section className="ck-approval" aria-label="Reunión cancelada">
-        <h3>Reunión mínima viable — cancelada</h3>
+      <section className="ck-approval" aria-label="Meeting cancelled">
+        <h3>Minimum viable meeting — cancelled</h3>
         <p className="ck-local-note">
-          Los bloqueos que la necesitaban siguen en needs_meeting.
+          The blockers that needed it are still needs_meeting.
         </p>
       </section>
     );
   }
 
   return (
-    <section className="ck-approval" aria-label="Aprobar reunión">
-      <h3>Reunión mínima viable</h3>
+    <section className="ck-approval" aria-label="Approve meeting">
+      <h3>Minimum viable meeting</h3>
       <p style={{ fontSize: ".88rem", opacity: 0.8 }}>
         {meeting.minutes} min ·{" "}
         {editing ? (
@@ -49,7 +49,7 @@ export function MeetingApproval({ meeting }: { meeting: Meeting }) {
             <strong>{item.topic}</strong> — {item.owner} · {item.minutes} min
             <br />
             <span style={{ opacity: 0.75 }}>
-              Decisión esperada: {item.decision}
+              Expected decision: {item.decision}
             </span>
           </li>
         ))}
@@ -57,8 +57,8 @@ export function MeetingApproval({ meeting }: { meeting: Meeting }) {
 
       {status === "approved" ? (
         <p role="status" className="ck-notice">
-          Reunión aprobada para {slot}. Nadie fue citado sin que un humano lo
-          confirmara.
+          Meeting approved for {slot}. Nobody was invited without a human
+          confirming it.
         </p>
       ) : (
         <div className="ck-approval-actions">
@@ -67,17 +67,17 @@ export function MeetingApproval({ meeting }: { meeting: Meeting }) {
             className="ck-btn ck-btn--primary"
             onClick={() => setStatus("approved")}
           >
-            Aprobar
+            Approve
           </button>
           <button type="button" className="ck-btn" onClick={() => setEditing((v) => !v)}>
-            {editing ? "Listo" : "Editar"}
+            {editing ? "Done" : "Edit"}
           </button>
           <button
             type="button"
             className="ck-btn"
             onClick={() => setStatus("cancelled")}
           >
-            Cancelar
+            Cancel
           </button>
         </div>
       )}

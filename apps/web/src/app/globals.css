@@ -532,7 +532,7 @@ p {
   overflow-wrap: anywhere;
 }
 
-/* ── Ruta Crítica · grafo de dependencias (P2) ─────────────────────────── */
+/* ── Critical Path · dependency graph (P2) ─────────────────────────────── */
 .rc-canvas {
   position: relative;
   margin: 4px 0 2px;
@@ -620,7 +620,7 @@ p {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-/* nodo angosto (fila bifurcada): cabe una línea más, el kind se recorta */
+/* narrow node (split row): fits one more line, the kind label gets clipped */
 .rc-node[data-split="1"] .rc-node-label {
   -webkit-line-clamp: 3;
   font-size: 12.5px;
@@ -636,7 +636,7 @@ p {
   white-space: nowrap;
 }
 
-/* resolviendo: late */
+/* resolving: pulses */
 .rc-node[data-status="resolving"] {
   background: color-mix(in srgb, var(--node) 7%, var(--surface));
   animation: rc-pulse 1.15s ease-in-out infinite;
@@ -663,7 +663,7 @@ p {
   }
 }
 
-/* resuelto: el flash que tiene que notarse en cámara */
+/* resolved: the flash that needs to read on camera */
 .rc-node[data-status="resolved"] {
   background: color-mix(in srgb, var(--node) 11%, var(--surface));
   border-color: color-mix(in srgb, var(--node) 45%, var(--border));
@@ -686,7 +686,7 @@ p {
   }
 }
 
-/* irreducible: el único que sí merece una sala */
+/* irreducible: the only one that actually deserves a room */
 .rc-node[data-status="needs_meeting"] {
   background: color-mix(in srgb, var(--node) 9%, var(--surface));
   border: 1px solid var(--node);

@@ -6,8 +6,8 @@ import { triageBlockers } from "./triage";
 const sample: Blocker[] = [
   {
     id: "pci",
-    label: "Revisión PCI DSS",
-    owner: "Sofía",
+    label: "PCI DSS review",
+    owner: "Sofia",
     blocks: ["payments", "checkout"],
     kind: null,
     status: "pending",
@@ -15,7 +15,7 @@ const sample: Blocker[] = [
   },
   {
     id: "copy",
-    label: "Aprobar el texto de checkout",
+    label: "Approve the checkout copy",
     owner: "Ana",
     blocks: [],
     kind: null,
@@ -38,8 +38,8 @@ test("triageBlockers sends one temperature-zero JSON-schema request and applies 
     assert.equal(JSON.parse(request.messages[1].content).blockers.length, 2);
     return Response.json({
       choices: [{ message: { content: JSON.stringify({ verdicts: [
-        { id: "pci", kind: "info_gap", summary: "Buscar el requisito PCI aplicable y compartir un pre-read." },
-        { id: "copy", kind: "real_decision", summary: "Reunir a Producto y Legal para elegir entre las dos versiones." },
+        { id: "pci", kind: "info_gap", summary: "Look up the applicable PCI requirement and share a pre-read." },
+        { id: "copy", kind: "real_decision", summary: "Get Product and Legal together to choose between the two versions." },
       ] }) } }],
     });
   };
@@ -69,7 +69,7 @@ test("triageBlockers falls back to confirmation for malformed model output", asy
       { kind: "confirmation", status: "resolved", savedPersonHours: 6 },
       { kind: "confirmation", status: "resolved", savedPersonHours: 4.5 },
     ]);
-    assert.match(triaged[0].resolution?.summary ?? "", /sí\/no/);
+    assert.match(triaged[0].resolution?.summary ?? "", /yes\/no/);
   } finally {
     globalThis.fetch = originalFetch;
     process.env.OPENROUTER_API_KEY = originalKey;

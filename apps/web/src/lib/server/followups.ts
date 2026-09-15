@@ -3,7 +3,6 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
-import { findIncident } from "../incidents";
 import type { Proposal, WorkplaceTask } from "../followup-types";
 import type { Workplace } from "./workplace";
 
@@ -28,8 +27,10 @@ const storedSchema = z.object({
 });
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
-const marker = (incidentId: string) =>
-  `agents-everywhere:${findIncident(incidentId).id}`;
+// CRITICAL PATH: the original kit validated this against the sample-incident
+// fixture (findIncident). Our incidentId is now our own identifier (the
+// project or the blocker); there's nothing to look up.
+const marker = (incidentId: string) => `agents-everywhere:${incidentId}`;
 function fileExists(error: unknown) {
   return error instanceof Error && "code" in error && error.code === "EEXIST";
 }
@@ -56,21 +57,20 @@ export class FollowupService {
   }
   async propose(session: string, input: unknown): Promise<Proposal> {
     const draft = draftSchema.parse(input);
-    const incident = findIncident(draft.incidentId);
     const identity = await this.workplace.identity();
     const actionKey = hash(
       JSON.stringify([
         identity.workspaceId,
-        incident.id,
+        draft.incidentId,
         draft.title,
         draft.details,
       ]),
     );
     const proposal = {
       id: randomUUID(),
-      incidentId: incident.id,
+      incidentId: draft.incidentId,
       title: draft.title,
-      description: `${draft.details}\n\nSample incident: ${incident.id} — ${incident.title}\n${marker(incident.id)}\nfollowup:${actionKey}`,
+      description: `${draft.details}\n\nCritical Path — ${draft.incidentId}\n${marker(draft.incidentId)}\nfollowup:${actionKey}`,
       workspaceId: identity.workspaceId,
       identityName: identity.name,
       identityId: identity.id,

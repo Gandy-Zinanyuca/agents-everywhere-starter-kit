@@ -1,9 +1,9 @@
 /**
- * Runtime del agente web. Dueño: P1.
- * Heredado del starter kit: toda la estructura Hono y las dos advertencias.
- * Construido hoy: el prompt propio de Ruta Crítica.
+ * Web agent runtime. Owner: P1.
+ * Inherited from the starter kit: the whole Hono setup and its two warnings.
+ * Built today: Critical Path's own prompt.
  *
- * NO declarar `channels` aquí. NO reusar una instancia de agente entre requests.
+ * Do NOT declare `channels` here. Do NOT reuse one agent instance across requests.
  */
 import { randomUUID } from "node:crypto";
 import {
@@ -11,15 +11,15 @@ import {
   createCopilotHonoHandler,
 } from "@copilotkit/runtime/v2";
 import { makeAgent } from "agent-core";
-import { RUTA_CRITICA_PROMPT } from "@/lib/ruta-critica-prompt";
+import { CRITICAL_PATH_PROMPT } from "@/lib/critical-path-prompt";
 
-// Las escrituras pasan por /api/followups tras la aprobación del navegador.
-// Nunca exponer escrituras MCP crudas aquí.
+// Writes go through /api/followups after browser approval.
+// Never expose raw MCP writes here.
 const runtime = new CopilotRuntime({
   agents: () => ({
     default: makeAgent(randomUUID(), {
       workplace: false,
-      prompt: RUTA_CRITICA_PROMPT,
+      prompt: CRITICAL_PATH_PROMPT,
     }),
   }),
 });

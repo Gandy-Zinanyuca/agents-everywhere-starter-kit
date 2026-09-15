@@ -1,11 +1,10 @@
 "use client";
 /**
- * PÁGINA — dueño: P1. Nadie más la edita.
- * Heredado del starter kit: layout ck-*, CopilotChat, GenerativeUI,
- * WorkplaceFollowups y el hook useWorkplace.
- * Construido hoy: el estado del grafo, botones de respaldo (independientes
- * del chat, por si el modelo no llama las tools) y la tarjeta de aprobación
- * de reunión de P4.
+ * PAGE — owner: P1. Nobody else edits it.
+ * Inherited from the starter kit: the ck-* layout, CopilotChat, GenerativeUI,
+ * WorkplaceFollowups and the useWorkplace hook.
+ * Built today: the graph state, backup buttons (independent of the chat, in
+ * case the model doesn't call the tools) and P4's meeting approval card.
  */
 
 import { useState, useTransition } from "react";
@@ -17,9 +16,7 @@ import { MeetingApproval } from "@/components/meeting-approval";
 import { WorkplaceFollowups } from "@/components/workplace-followups";
 import { useWorkplace } from "@/lib/use-workplace";
 import { useGraph } from "@/lib/use-graph";
-
-/** Ancla de los registros en Ambiguous. Un proyecto = un hilo. */
-const PROJECT_ID = "checkout-v2";
+import { PROJECT_ID } from "@/lib/graph-types";
 
 export default function Home() {
   const graph = useGraph();
@@ -39,7 +36,7 @@ export default function Home() {
       try {
         await action();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Algo falló. Revisa la consola.");
+        setError(e instanceof Error ? e.message : "Something failed. Check the console.");
       }
     });
   }
@@ -48,19 +45,19 @@ export default function Home() {
     {
       suggestions: [
         {
-          title: "¿Qué me está frenando?",
+          title: "What's blocking me?",
           message:
-            "¿Qué me está frenando para lanzar este proyecto? Mapea la cadena de bloqueos y clasifícalos.",
+            "What's blocking me from launching this project? Map the chain of blockers and classify them.",
         },
         {
-          title: "Resuelve lo que se pueda async",
+          title: "Resolve what can be async",
           message:
-            "Resuelve async todo lo que no necesite una reunión. Para los info_gap, investiga y adjunta un pre-read con fuentes.",
+            "Resolve async everything that doesn't need a meeting. For the info_gaps, research and attach a pre-read with sources.",
         },
         {
-          title: "Solo lo irreducible",
+          title: "Only what's irreducible",
           message:
-            "¿Qué queda que de verdad necesite juntar gente? Prepara la reunión mínima con agenda y decisión esperada por punto.",
+            "What's left that truly needs to get people together? Prepare the minimum meeting with agenda and expected decision per item.",
         },
       ],
       available: "before-first-message",
@@ -76,23 +73,23 @@ export default function Home() {
       <main className="ck-workspace">
         <header className="ck-workspace-header">
           <div>
-            <p className="ck-eyebrow">Agents, everywhere · Ruta Crítica</p>
+            <p className="ck-eyebrow">Agents, everywhere · Critical Path</p>
             <h1>{state.project}</h1>
             <p className="ck-intro">
-              El agente no agenda reuniones: las elimina. Solo lo irreducible
-              llega a ser una reunión.
+              The agent doesn't schedule meetings: it eliminates them. Only
+              what's irreducible becomes a meeting.
             </p>
           </div>
-          <span className="ck-tag">Datos seeded</span>
+          <span className="ck-tag">Seeded data</span>
         </header>
 
         <div className="ck-workspace-grid">
           <section className="ck-panel" aria-labelledby="graph-title">
             <h2 id="graph-title" style={{ marginTop: 0 }}>
-              Cadena de bloqueos
+              Chain of blockers
             </h2>
 
-            {/* Respaldo manual: no depende de que el chat llame las tools. */}
+            {/* Manual backup: doesn't depend on the chat calling the tools. */}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "10px 0" }}>
               <button
                 type="button"
@@ -100,7 +97,7 @@ export default function Home() {
                 disabled={isPending}
                 onClick={() => runSafely(runTriage)}
               >
-                Analizar bloqueos
+                Analyze blockers
               </button>
               {infoGapsPending.map((b) => (
                 <button
@@ -110,7 +107,7 @@ export default function Home() {
                   disabled={isPending}
                   onClick={() => runSafely(() => resolveInfoGap(b.id))}
                 >
-                  Investigar: {b.id}
+                  Research: {b.id}
                 </button>
               ))}
               {needsMeeting && !state.meeting && (
@@ -120,7 +117,7 @@ export default function Home() {
                   disabled={isPending}
                   onClick={() => runSafely(runMeeting)}
                 >
-                  Proponer reunión mínima
+                  Propose minimum meeting
                 </button>
               )}
             </div>
@@ -146,14 +143,14 @@ export default function Home() {
             aria-labelledby="assistant-title"
           >
             <header className="ck-assistant-header">
-              <h2 id="assistant-title">Ruta Crítica</h2>
-              <p>Lee esta página, clasifica los bloqueos y mata las reuniones evitables.</p>
+              <h2 id="assistant-title">Critical Path</h2>
+              <p>Reads this page, classifies the blockers, and kills avoidable meetings.</p>
             </header>
             <CopilotChat
               className="ck-chat"
               labels={{
-                welcomeMessageText: "¿Qué te está frenando?",
-                chatInputPlaceholder: "Pregunta por la cadena de bloqueos…",
+                welcomeMessageText: "What's blocking you?",
+                chatInputPlaceholder: "Ask about the chain of blockers…",
               }}
             />
           </section>

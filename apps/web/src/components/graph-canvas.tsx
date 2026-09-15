@@ -1,15 +1,15 @@
 "use client";
 /**
- * GRAFO — dueño: P2.
- * Layout en capas VERTICAL: la profundidad baja, los hermanos se reparten
- * el ancho de la fila. El DAG real llega a 6 niveles de profundidad, que en
- * horizontal no caben en el panel; en vertical cada nodo usa el ancho
- * completo y los labels largos del fixture se leen sin escalar nada.
+ * GRAPH — owner: P2.
+ * VERTICAL layered layout: depth goes down, siblings split the row's width.
+ * The real DAG reaches 6 levels of depth, which don't fit the panel
+ * horizontally; vertically each node uses the full width and the fixture's
+ * long labels read fine without scaling anything down.
  *
- * Aristas en SVG, nodos en divs absolutos encima: hover y transiciones son
- * HTML normal y se ven en cámara.
+ * Edges in SVG, nodes in absolute divs on top: hover and transitions are
+ * plain HTML and read well on camera.
  *
- * Firma de props intacta (P1): GraphCanvas({ state }) y SavedHours({ state }).
+ * Props signature intact (P1): GraphCanvas({ state }) and SavedHours({ state }).
  */
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -20,8 +20,8 @@ import {
   type Blocker,
 } from "@/lib/graph-types";
 
-const ROW_H = 88; // fila de un solo nodo: el label cabe en 2 líneas
-const ROW_H_SPLIT = 108; // fila bifurcada: nodos angostos, 3 líneas
+const ROW_H = 88; // single-node row: the label fits in 2 lines
+const ROW_H_SPLIT = 108; // split row: narrow nodes, 3 lines
 const ROW_GAP = 26;
 const COL_GAP = 14;
 const FALLBACK_W = 480;
@@ -34,7 +34,7 @@ type Placed = Blocker & {
   row: number;
 };
 
-/** Profundidad = fila. Relajación acotada; tolera ciclos sin colgarse. */
+/** Depth = row. Bounded relaxation; tolerates cycles without hanging. */
 function layout(blockers: Blocker[], W: number) {
   const depth = new Map(blockers.map((b) => [b.id, 0]));
   for (let i = 0; i < blockers.length; i++) {
@@ -49,8 +49,8 @@ function layout(blockers: Blocker[], W: number) {
   const rows: Blocker[][] = [];
   for (const b of blockers) (rows[depth.get(b.id) ?? 0] ||= []).push(b);
 
-  // Una fila bifurcada parte el ancho, así que necesita más alto para que el
-  // label no se corte. Alto por fila, no global.
+  // A split row divides the width, so it needs more height so the label
+  // doesn't get cut off. Height per row, not global.
   const placed: Placed[] = [];
   let y = 0;
   rows.forEach((row, ri) => {
@@ -67,7 +67,7 @@ function layout(blockers: Blocker[], W: number) {
 }
 
 export function GraphCanvas({ state }: { state: AppState }) {
-  // El grafo se adapta al ancho medido: sin transform, sin texto diminuto.
+  // The graph adapts to the measured width: no transform, no tiny text.
   const boxRef = useRef<HTMLDivElement>(null);
   const [boxW, setBoxW] = useState(0);
   useLayoutEffect(() => {
@@ -137,11 +137,11 @@ export function GraphCanvas({ state }: { state: AppState }) {
             <span className="rc-node-head">
               <i className="rc-dot" />
               <span className="rc-node-kind">
-                {b.kind ? KIND_LABEL[b.kind] : "sin triar"}
+                {b.kind ? KIND_LABEL[b.kind] : "not triaged"}
               </span>
               <span className="rc-node-owner">{b.owner}</span>
               {b.status === "needs_meeting" && (
-                <span className="rc-badge">reunión</span>
+                <span className="rc-badge">meeting</span>
               )}
               {b.status === "resolved" && b.savedPersonHours > 0 && (
                 <span className="rc-saved">+{b.savedPersonHours}h</span>
@@ -175,9 +175,9 @@ export function GraphCanvas({ state }: { state: AppState }) {
       <ul className="rc-legend">
         {(
           [
-            ["pending", "sin tocar"],
-            ["resolving", "resolviendo"],
-            ["resolved", "resuelto async"],
+            ["pending", "untouched"],
+            ["resolving", "resolving"],
+            ["resolved", "resolved async"],
             ["needs_meeting", "irreducible"],
           ] as const
         ).map(([s, label]) => (
@@ -191,7 +191,7 @@ export function GraphCanvas({ state }: { state: AppState }) {
   );
 }
 
-/** El número grande del cierre del demo. Tweened para que se vea subir. */
+/** The big number that closes the demo. Tweened so it looks like it's rising. */
 export function SavedHours({ state }: { state: AppState }) {
   const totals = state.totals;
   const shown = useTween(totals.saved);
@@ -202,17 +202,17 @@ export function SavedHours({ state }: { state: AppState }) {
       <div className="rc-meter-top">
         <strong className="rc-meter-num">{shown.toFixed(1)}</strong>
         <span className="rc-meter-unit">
-          horas-persona
+          person-hours
           <br />
-          recuperadas
+          recovered
         </span>
       </div>
       <div className="rc-bar">
         <span style={{ width: `${Math.min(100, pct)}%` }} />
       </div>
       <p className="rc-meter-foot">
-        de {totals.before.toFixed(1)} h de coordinación · quedan{" "}
-        {totals.after.toFixed(1)} h
+        of {totals.before.toFixed(1)}h coordination · {totals.after.toFixed(1)}h{" "}
+        remaining
       </p>
     </div>
   );

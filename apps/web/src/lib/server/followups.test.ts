@@ -143,9 +143,10 @@ test("a lost create reply is reconciled from Ambiguous without a second create",
 
 test("invalid proposal inputs fail before provider writes", async (t) => {
   const { service, provider } = await fixture(t);
-  await assert.rejects(
-    service.propose(session, { ...input, incidentId: "unknown" }),
-  );
+  // CRITICAL PATH: incidentId is now our own opaque project/blocker id, not
+  // validated against the starter kit's sample-incident fixture (removed
+  // with the findIncident() dependency in followups.ts) — any non-empty
+  // string is a valid incidentId now, so that case moved out of this test.
   await assert.rejects(service.propose(session, { ...input, title: " " }));
   await assert.rejects(
     service.propose(session, { ...input, details: "x".repeat(4001) }),

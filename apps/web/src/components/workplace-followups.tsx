@@ -1,11 +1,11 @@
 "use client";
 /**
- * REGISTRO DE RESOLUCIONES — dueño: P4.
- * Heredado del starter kit tal cual: propose/approve/deny/refresh contra
- * Ambiguous (la frontera de escritura de src/lib/server/*, que nadie toca).
- * Adaptado para Ruta Crítica: esto registra resoluciones de bloqueos
- * aprobadas por un humano, no follow-ups de un incidente de ejemplo.
- * `propose_resolution` (app-control.tsx, dueño P1) escribe aquí.
+ * RESOLUTION RECORD — owner: P4.
+ * Inherited from the starter kit as-is: propose/approve/deny/refresh against
+ * Ambiguous (the write boundary in src/lib/server/*, which nobody touches).
+ * Adapted for Critical Path: this records blocker resolutions approved by a
+ * human, not follow-ups on a sample incident.
+ * `propose_resolution` (app-control.tsx, owner P1) writes here.
  */
 import { useState, type FormEvent } from "react";
 import type { WorkplaceControls } from "@/lib/use-workplace";
@@ -36,7 +36,7 @@ export function WorkplaceFollowups({
       setError(
         error instanceof Error
           ? error.message
-          : "No se pudo preparar la propuesta.",
+          : "Could not prepare the proposal.",
       );
     } finally {
       setPreparing(false);
@@ -51,7 +51,7 @@ export function WorkplaceFollowups({
       setError(
         error instanceof Error
           ? error.message
-          : "No se pudo refrescar el registro desde Ambiguous.",
+          : "Could not refresh the record from Ambiguous.",
       );
     }
   }
@@ -60,10 +60,10 @@ export function WorkplaceFollowups({
     <section className="ck-followups" aria-labelledby="followup-title">
       <header className="ck-followups-header">
         <div>
-          <h2 id="followup-title">Resoluciones registradas</h2>
+          <h2 id="followup-title">Recorded resolutions</h2>
           <p className="ck-local-note">
-            Una resolución solo se guarda tras la aprobación en esta página.
-            Refrescar vuelve a leer el proveedor.
+            A resolution is only saved after approval on this page.
+            Refreshing reads the provider again.
           </p>
         </div>
         <span className="ck-tag">Ambiguous</span>
@@ -71,24 +71,24 @@ export function WorkplaceFollowups({
 
       {status?.status === "unconfigured" ? (
         <div className="ck-setup-note">
-          <strong>Conecta un workspace para guardar resoluciones</strong>
+          <strong>Connect a workspace to save resolutions</strong>
           <p>{status.message}</p>
           <p>
-            El resto del flujo (grafo, triage, pre-reads, reunión) sigue
-            funcionando sin esto. No se crea ningún registro local como
-            reemplazo.
+            The rest of the flow (graph, triage, pre-reads, meeting) keeps
+            working without this. No local record is created as a
+            replacement.
           </p>
         </div>
       ) : status?.status === "connected" ? (
         <p className="ck-local-note">
-          Leído de Ambiguous como {status.identityName}. Workspace{" "}
+          Read from Ambiguous as {status.identityName}. Workspace{" "}
           <code>{status.workspaceId}</code>.
         </p>
       ) : (
         <p className="ck-local-note">
           {workplace.error
-            ? "Conexión con el workspace no disponible."
-            : "Conectando con Ambiguous…"}
+            ? "Connection to the workspace is unavailable."
+            : "Connecting to Ambiguous…"}
         </p>
       )}
 
@@ -102,16 +102,16 @@ export function WorkplaceFollowups({
                 <code className="ck-record-id">{task.id}</code>
                 {task.url ? (
                   <a href={task.url} target="_blank" rel="noreferrer">
-                    Abrir registro en Ambiguous
+                    Open record in Ambiguous
                   </a>
                 ) : (
                   <span className="ck-muted">
-                    Ambiguous no devolvió un link. Usa este ID en el
+                    Ambiguous did not return a link. Use this ID in the
                     workspace.
                   </span>
                 )}
                 <details>
-                  <summary>Detalle guardado</summary>
+                  <summary>Saved detail</summary>
                   <p className="ck-preserve-lines">{task.description}</p>
                 </details>
               </div>
@@ -119,7 +119,7 @@ export function WorkplaceFollowups({
           ))}
         </ul>
       ) : status?.status === "connected" ? (
-        <p className="ck-empty">Sin resoluciones guardadas para este proyecto.</p>
+        <p className="ck-empty">No resolutions saved for this project.</p>
       ) : null}
 
       <button
@@ -128,30 +128,30 @@ export function WorkplaceFollowups({
         disabled={busy}
         onClick={refresh}
       >
-        Refrescar desde Ambiguous
+        Refresh from Ambiguous
       </button>
 
       <form onSubmit={submit} className="ck-task-form ck-task-form--stacked">
         <label className="ck-sr-only" htmlFor="task-title">
-          Registrar una resolución manualmente
+          Manually record a resolution
         </label>
         <input
           id="task-title"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           maxLength={200}
-          placeholder="Título de la resolución…"
+          placeholder="Resolution title…"
           required
         />
         <label className="ck-sr-only" htmlFor="task-details">
-          Detalle de la resolución
+          Resolution detail
         </label>
         <textarea
           id="task-details"
           value={details}
           onChange={(event) => setDetails(event.target.value)}
           maxLength={4000}
-          placeholder="Qué se decidió o resolvió, y por qué"
+          placeholder="What was decided or resolved, and why"
           required
           rows={3}
         />
@@ -160,21 +160,21 @@ export function WorkplaceFollowups({
           disabled={status?.status !== "connected" || preparing || busy}
           type="submit"
         >
-          {preparing ? "Preparando…" : "Revisar"}
+          {preparing ? "Preparing…" : "Review"}
         </button>
       </form>
 
       {proposal && (
-        <section className="ck-approval" aria-label="Aprobar registro en Ambiguous">
-          <h3>Aprobar este registro en Ambiguous</h3>
+        <section className="ck-approval" aria-label="Approve record in Ambiguous">
+          <h3>Approve this record in Ambiguous</h3>
           <p>
-            Se guarda como {proposal.identityName} en el workspace{" "}
-            <code>{proposal.workspaceId}</code>. Expira{" "}
+            Saved as {proposal.identityName} in workspace{" "}
+            <code>{proposal.workspaceId}</code>. Expires{" "}
             {new Date(proposal.expiresAt).toLocaleTimeString()}.
           </p>
           <strong>{proposal.title}</strong>
           <p className="ck-preserve-lines">{proposal.description}</p>
-          <p>Esto es una escritura real. Revisa los campos exactos arriba.</p>
+          <p>This is a real write. Review the exact fields above.</p>
           <div className="ck-approval-actions">
             <button
               type="button"
@@ -182,7 +182,7 @@ export function WorkplaceFollowups({
               disabled={busy}
               onClick={workplace.approve}
             >
-              {busy ? "Guardando…" : "Aprobar y guardar en Ambiguous"}
+              {busy ? "Saving…" : "Approve and save to Ambiguous"}
             </button>
             <button
               type="button"
@@ -190,7 +190,7 @@ export function WorkplaceFollowups({
               disabled={busy}
               onClick={workplace.deny}
             >
-              Rechazar
+              Reject
             </button>
           </div>
         </section>
